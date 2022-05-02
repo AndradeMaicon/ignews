@@ -1,7 +1,21 @@
+import { GetStaticProps } from "next";
 import Head from "next/head";
+import { createClient } from "../../services/prismic";
 import styles from './styles.module.scss';
+import { RichText } from 'prismic-dom';
 
-export default function Post() {
+type Post = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  updateAt: string;
+}
+
+interface PostProps {
+  posts: Post[]
+}
+
+export default function Post({ posts }: PostProps) {
   return (
     <>
     <Head>
@@ -10,23 +24,40 @@ export default function Post() {
 
     <main className={styles.container}>
       <div className={styles.posts}>
-        <a href="">
-          <time>12 de março de 2021</time>
-          <strong>Creating a Monorepo with Lerna &#38; Yarn Workspaces</strong>
-          <p>In this guide, you will learn how to create a Monorepo to manage multiple packages with a shared build, test, and release process.</p>
-        </a>
-        <a href="">
-          <time>12 de março de 2021</time>
-          <strong>Creating a Monorepo with Lerna &#38; Yarn Workspaces</strong>
-          <p>In this guide, you will learn how to create a Monorepo to manage multiple packages with a shared build, test, and release process.</p>
-        </a>
-        <a href="">
-          <time>12 de março de 2021</time>
-          <strong>Creating a Monorepo with Lerna &#38; Yarn Workspaces</strong>
-          <p>In this guide, you will learn how to create a Monorepo to manage multiple packages with a shared build, test, and release process.</p>
-        </a>
+        {
+          posts.map(post => (
+            <a key={post.slug} href="">
+              <time>{post.updateAt}</time>
+              <strong>{post.title}</strong>
+              <p>{post.excerpt}</p>
+            </a>
+          ))
+        }
       </div>
     </main>
     </>
   )
+}
+
+export const getStaticProps: GetStaticProps = async ({ previewData }) => {
+  const prismic = createClient({ previewData })
+
+  const resp = await prismic.getAllByType('post')
+
+  const posts = resp.map(post => ({
+    slug: post.uid,
+    title: RichText.asText(post.data.title),
+    excerpt: post.data.content.find(content => content.type === 'heading2')?.text ?? '',
+    updateAt: new Date(post.last_publication_date).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    })
+  }))
+
+  return {
+    props: {
+      posts
+    }
+  }
 }
