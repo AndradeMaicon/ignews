@@ -42,6 +42,15 @@ export const getServerSideProps: GetServerSideProps = async ({req, params, previ
   const prismic = createClient({ previewData })
   const {slug} = params;
 
+  if(!session?.activeSubscription) {
+    return {
+      redirect: {
+        destination: `/posts/preview/${slug}`,
+        permanent: false,
+      }
+    }
+  }
+
   const resp = await prismic.getByUID('post', String(slug), {})
 
   const post = {
@@ -58,6 +67,7 @@ export const getServerSideProps: GetServerSideProps = async ({req, params, previ
   return {
     props: {
       post
-    }
+    },
+    revalidate: 60 * 30 // 30 minutos
   }
 }
